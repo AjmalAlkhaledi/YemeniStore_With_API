@@ -20,7 +20,7 @@ class YemeniStoreApp extends StatelessWidget {
             create: (_) => ProductsProvider()..loadProducts()),
         ChangeNotifierProvider(
             create: (_) => FavoritesProvider()..loadFavorites()),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()..loadCart()),
       ],
       child: MaterialApp(
         title: 'متجر اليمن',

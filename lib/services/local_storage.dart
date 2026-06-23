@@ -1,60 +1,56 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 
 class LocalStorage {
-  static const String favoritesFile = 'favorites.json';
-  static const String productsCacheFile = 'products_cache.json';
+  static const String favoritesKey = 'favorites';
+  static const String productsCacheKey = 'products_cache';
+  static const String cartKey = 'cart';
 
-  Future<File> _file(String name) async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/$name');
+  Future<void> _setJson(String key, Object value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, jsonEncode(value));
   }
 
-  Future<void> saveFavorites(List<Product> products) async {
+  Future<dynamic> _getJson(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    if (raw == null || raw.isEmpty) return null;
     try {
-      final file = await _file(favoritesFile);
-      final data = jsonEncode(products.map((p) => p.toJson()).toList());
-      await file.writeAsString(data);
-    } catch (_) {}
+      return jsonDecode(raw);
+    } catch (_) {
+      return null;
+    }
   }
+
+  Future<void> saveFavorites(List<Product> products) =>
+      _setJson(favoritesKey, products.map((p) => p.toJson()).toList());
 
   Future<List<Product>> loadFavorites() async {
-    try {
-      final file = await _file(favoritesFile);
-      if (!await file.exists()) return [];
-      final content = await file.readAsString();
-      if (content.isEmpty) return [];
-      final List<dynamic> list = jsonDecode(content) as List<dynamic>;
-      return list
-          .map((e) => Product.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    final data = await _getJson(favoritesKey);
+    if (data is! List) return [];
+    return data
+        .map((e) => Product.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<void> saveProductsCache(List<Product> products) async {
-    try {
-      final file = await _file(productsCacheFile);
-      final data = jsonEncode(products.map((p) => p.toJson()).toList());
-      await file.writeAsString(data);
-    } catch (_) {}
-  }
+  Future<void> saveProductsCache(List<Product> products) =>
+      _setJson(productsCacheKey, products.map((p) => p.toJson()).toList());
 
   Future<List<Product>> loadProductsCache() async {
-    try {
-      final file = await _file(productsCacheFile);
-      if (!await file.exists()) return [];
-      final content = await file.readAsString();
-      if (content.isEmpty) return [];
-      final List<dynamic> list = jsonDecode(content) as List<dynamic>;
-      return list
-          .map((e) => Product.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    final data = await _getJson(productsCacheKey);
+    if (data is! List) return [];
+    return data
+        .map((e) => Product.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> saveCart(List<Map<String, dynamic>> items) =>
+      _setJson(cartKey, items);
+
+  Future<List<Map<String, dynamic>>> loadCart() async {
+    final data = await _getJson(cartKey);
+    if (data is! List) return [];
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 }
